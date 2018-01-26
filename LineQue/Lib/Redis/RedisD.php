@@ -1,17 +1,11 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 namespace LineQue\Lib\Redis;
 
 use Redis;
 
 /**
- * Description of Redis
+ * Redis基本操作类
  *
  * @author Administrator
  */
@@ -26,7 +20,7 @@ class RedisD {
     public function getRedis($redisConf) {
         if ($redisConf && class_exists('Redis')) {
             $redis = new Redis();
-            $redis->connect($redisConf['DBNAME'], $redisConf['PORT']);
+            $redis->connect($redisConf['HOST'], $redisConf['PORT']);
             !$redisConf['PWD'] ?: $redis->auth($redisConf['PWD']);
             !$redisConf['DBNAME'] ?: $redis->select($redisConf['DBNAME']);
             if ($redis) {

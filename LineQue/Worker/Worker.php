@@ -2,41 +2,35 @@
 
 namespace LineQue\Worker;
 
-use Exception;
 use LineQue\Lib\dbJobInstance;
-use LineQue\Lib\Language;
-use const LOGPATH;
+use LineQue\Lib\ProcLine;
 
 /**
- * Description of Worker
+ * 执行job的子进程
+ * 本进程主要获取job,更新job等操作
+ * 实际最终执行用户app的,也就是执行run方法的,为本进程开启的子进程
+ * 这样做可以保护本进程,也可以获取run方法有没有意外终止导致执行失败
  *
  * @author Administrator
  */
 class Worker {
 
-    private $Que;
-    private $interval;
-    private $DbInstance = null;
-    private $procLine = null;
-    private $language;
+    private $Que; //队列名
+    private $interval; //循环时间间隔
+    private $DbInstance = null; //数据库操作实例
+    private $procLine = null; //日志记录
 
-    public function __construct($Que, $interval, $lang = 'CH') {
+    public function __construct($Que, $interval) {
         $this->Que = $Que;
         $this->interval = $interval;
-        $this->language = $lang;
         $this->DbInstance = new dbJobInstance();
         $this->procLine = new ProcLine(LOGPATH);
     }
 
     public function startWork() {
-//        $this->registerSigHandlers();
-        $this->work(); //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
-    }
-
-    public function work() {
-        $this->procLine->safeEcho(Language::getLanguage($this->language)['SlaverStartWorkLoop'] . 'PID=' . posix_getpid() . PHP_EOL);
+        //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
+        $this->procLine->EchoAndLog('子进程开始循环PID=' . posix_getpid() . PHP_EOL);
         while (1) {
-//            $this->procLine->safeEcho(Language::getLanguage($this->language)['SlaverPing'] . PHP_EOL);//进程存活输出
             pcntl_signal_dispatch(); //查看信号队列
             $job = $this->DbInstance->getJob($this->Que); //此时可以执行一个新job
             $this->doAJob($job); //执行一个job
@@ -44,68 +38,26 @@ class Worker {
         }
     }
 
+    /**
+     * 检查job
+     * @param type $job
+     * @return boolean
+     */
     private function doAJob($job) {
         if ($job) {
             $canDo = isset($job['args']['lineDoTime']) && $job['args']['lineDoTime'] > 0 ? ($job['args']['lineDoTime'] <= time() ? true : false) : true; //如果设置了执行时间,则在执行时间之后才出队
             if ($canDo) {
                 $job = $this->DbInstance->popJob($this->Que); //将这个job出队
-                $this->procLine->safeEcho(Language::getLanguage($this->language)['SlaverStartAJob'] . 'PID=' . posix_getpid() . 'JobInfo:' . json_encode($job) . PHP_EOL);
+                $this->procLine->EchoAndLog('子进程即将开始一个新JobPID=' . posix_getpid() . 'JobInfo:' . json_encode($job) . PHP_EOL);
                 try {
                     $this->DbInstance->run($job); //执行
                 } catch (Exception $ex) {
-                    $this->procLine->safeEcho(Language::getLanguage($this->language)['SlaverException'] . 'PID=' . posix_getpid() . ':' . json_encode($ex) . PHP_EOL);
+                    $this->procLine->EchoAndLog('新Job执行发生异常PID=' . posix_getpid() . ':' . json_encode($ex) . PHP_EOL);
                 }
-                $this->procLine->safeEcho(Language::getLanguage($this->language)['SlaverEndAJob'] . 'PID=' . posix_getpid() . ',JobId=' . $job['id'] . PHP_EOL);
+                $this->procLine->EchoAndLog('新Job执行结束PID=' . posix_getpid() . ',JobId=' . $job['id'] . PHP_EOL);
             }
         }
         return true;
     }
-//
-//    /**
-//     * 注册信号
-//     */
-//    private function registerSigHandlers() {
-////        if (!function_exists('pcntl_signal')) {
-////            return;
-////        }
-//        // 停止
-//        pcntl_signal(SIGINT, array($this, 'signalHandler'), false);
-//        // 用户信号,可用于重载
-//        pcntl_signal(SIGUSR1, array($this, 'signalHandler'), false);
-//        // 用户信号
-//        pcntl_signal(SIGUSR2, array($this, 'signalHandler'), false);
-//        // connection status
-//        pcntl_signal(SIGIO, array($this, 'signalHandler'), false);
-//        // 忽略
-//        pcntl_signal(SIGPIPE, SIG_IGN, false);
-//    }
-//
-//    /**
-//     * 信号处理函数
-//     * @param type $signo
-//     * @return boolean
-//     */
-//    public function signalHandler($signo) {
-//        $this->procLine->log(Language::getLanguage($this->language)['SlaverSigno'] . ':' . $signo . PHP_EOL);
-//        switch ($signo) {
-//            case SIGIO: //
-//                $this->procLine->log('Slaver Signo:SIGIO' . PHP_EOL);
-//                echo "Slaver SIGIO" . PHP_EOL;
-//                break;
-//            case SIGINT: //
-//                $this->procLine->log('Slaver Signo:SIGINT' . PHP_EOL);
-//                echo "Slaver SIGINT" . PHP_EOL;
-//                break;
-//            case SIGUSR1: //用户自定义信号
-//                $this->procLine->log('Slaver Signo:SIGUSR1' . PHP_EOL);
-//                echo "Slaver SIGUSR1" . PHP_EOL;
-//                break;
-//            case SIGUSR2: //用户自定义信号
-//                $this->procLine->log('Slaver Signo:SIGUSR2' . PHP_EOL);
-//                echo "Slaver SIGUSR2" . PHP_EOL;
-//                break;
-//            default:
-//                return false;
-//        }
-//    }
+
 }

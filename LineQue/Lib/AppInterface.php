@@ -1,19 +1,16 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 namespace LineQue\Lib;
 
 /**
- * Description of AppInterface
+ * App接口,用户必须继承本接口
  *
  * @author Administrator
  */
 interface AppInterface {
 
+    /**
+     * job必然执行本方法
+     */
     public function run();
 }

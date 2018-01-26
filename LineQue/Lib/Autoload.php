@@ -2,11 +2,13 @@
 
 namespace LineQue\Lib;
 
-use LineQue\Worker\ProcLine;
 use const APP;
 use const LineQue;
 use const LOGPATH;
 
+/**
+ * 自动加载类
+ */
 class Autoload {
 
     public static function start() {
@@ -48,8 +50,8 @@ class Autoload {
         $e = error_get_last();
         if ($e) {
             $logLine = new ProcLine(LOGPATH);
-            $logLine->safeEcho('---------------------发生严重错误---------------------' . PHP_EOL);
-            $logLine->safeEcho(json_encode($e) . PHP_EOL);
+            $logLine->EchoAndLog('---------------------发生严重错误---------------------' . PHP_EOL);
+            $logLine->EchoAndLog(json_encode($e) . PHP_EOL);
         }
     }
 
@@ -64,8 +66,8 @@ class Autoload {
         if ($errno) {
             $errorStr = "$errstr " . $errfile . " 第 $errline 行.";
             $logLine = new ProcLine(LOGPATH);
-            $logLine->safeEcho('---------------------发生程序错误---------------------' . PHP_EOL);
-            $logLine->safeEcho($errno . ':' . $errorStr . PHP_EOL);
+            $logLine->EchoAndLog('---------------------发生程序错误---------------------' . PHP_EOL);
+            $logLine->EchoAndLog($errno . ':' . $errorStr . PHP_EOL);
         }
     }
 
@@ -87,8 +89,8 @@ class Autoload {
             }
             $error['trace'] = $e->getTraceAsString();
             $logLine = new ProcLine(LOGPATH);
-            $logLine->safeEcho('---------------------发生异常---------------------' . PHP_EOL);
-            $logLine->safeEcho(json_encode($error) . PHP_EOL);
+            $logLine->EchoAndLog('---------------------发生异常---------------------' . PHP_EOL);
+            $logLine->EchoAndLog(json_encode($error) . PHP_EOL);
         }
     }
 

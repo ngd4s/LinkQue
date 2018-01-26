@@ -4,10 +4,7 @@ namespace LineQue\Lib;
 
 use Exception;
 use LineQue\Config\Conf;
-use LineQue\Lib\File\FileDb;
-use LineQue\Lib\Mysql\MysqlDb;
 use LineQue\Lib\Redis\RedisDb;
-use LineQue\Worker\ProcLine;
 use const LOGPATH;
 
 /**
@@ -26,16 +23,13 @@ class dbJobInstance {
      */
     private $dbInstance = null;
     private $procLine = null;
-    private $language;
 
     /**
      * 初始化数据库控制
-     * @param type $dbConf
      */
-    public function __construct($dbConf = null, $lang = 'CH') {
-        $this->dbInstance = $this->doDbInstance($dbConf);
-        $this->procLine = new ProcLine(LOGPATH);
-        $this->language = $lang;
+    public function __construct() {
+        $this->dbInstance = $this->doDbInstance();
+        $this->procLine = new ProcLine(defined(LOGPATH) ? LOGPATH : null);
     }
 
     /**
@@ -130,7 +124,7 @@ class dbJobInstance {
 
     /**
      * job执行状态,正常的job是从执行这个方法
-     * 这个方法主动去实例化用户指定的类,并主动调用其perform方法
+     * 这个方法主动去实例化用户指定的类,并主动调用其run方法
      * @param type $job
      * @return boolean
      */
@@ -138,24 +132,23 @@ class dbJobInstance {
         try {
             $instance = $this->getAppInstance($job);
             if (!$instance) {
-                $this->procLine->safeEcho(Language::getLanguage($this->language)['AppFail'] . ':' . $job['class'] . PHP_EOL);
+                $this->procLine->EchoAndLog('用户App初始化失败:' . $job['class'] . PHP_EOL);
             } else {
                 $this->workingOn($job); //开始执行
-                $this->procLine->safeEcho(Language::getLanguage($this->language)['AppStartPerform'] . ':' . $job['id'] . PHP_EOL);
+                $this->procLine->EchoAndLog('用户APP开始执行:' . $job['id'] . PHP_EOL);
                 $rs = $this->runApp($instance);
-//                $this->procLine->safeEcho(Language::getLanguage($this->language)['AppEndPerform'] . ':' . $job['id'] . PHP_EOL);//执行结束
                 if ($rs) {
-                    $this->procLine->safeEcho(Language::getLanguage($this->language)['AppWorkingDone'] . ':' . $job['id'] . PHP_EOL);
+                    $this->procLine->EchoAndLog('用户APP执行成功:' . $job['id'] . PHP_EOL);
                     $this->workingDone($job); //执行完成
                     return true;
                 } else {
-                    $this->procLine->safeEcho(Language::getLanguage($this->language)['AppWorkingFail'] . ':' . $job['id'] . PHP_EOL);
+                    $this->procLine->EchoAndLog('用户APP执行失败:' . $job['id'] . PHP_EOL);
                     $this->workingFail($job); //执行失败
                     return false;
                 }
             }
         } catch (Exception $e) {
-            $this->procLine->safeEcho(Language::getLanguage($this->language)['AppException'] . ':' . $job['id'] . ':' . json_encode($e) . PHP_EOL);
+            $this->procLine->EchoAndLog('用户APP执行异常:' . $job['id'] . ':' . json_encode($e) . PHP_EOL);
             throw $e;
         }
         return false;
@@ -169,18 +162,28 @@ class dbJobInstance {
      * @return boolean
      */
     public function runApp($instance) {
-        $pid = pcntl_fork();
-        if ($pid > 0) {
-            $status = 0;
-            $exitPid = pcntl_wait($status);
-            if ($exitPid && $status == 0) {
-                return true;
+        $dbConf = Conf::getConf();
+        if ($dbConf['DBTYPE'] == 'Redis') {
+            $pid = pcntl_fork();
+            if ($pid > 0) {
+                $status = 0;
+                $exitPid = pcntl_wait($status);
+                if ($exitPid && $status == 0) {
+                    return true;
+                }
+            } elseif ($pid == 0) {
+                $instance->run(); //执行用户的perform方法
+                exit(0);
             }
-        } elseif ($pid == 0) {
-            $instance->run(); //执行用户的perform方法
-            exit(0);
+            return false;
+        } else {//非Redis方式,本人写的不好,开始写的时候没想到使用子进程管理数据库连接导致报错的问题
+            try {
+                $instance->run(); //执行用户的perform方法
+                return true;
+            } catch (Exception $ex) {
+                return false;
+            }
         }
-        return false;
     }
 
     /**
@@ -192,18 +195,18 @@ class dbJobInstance {
      */
     public function getAppInstance($job) {
         if (!class_exists($job['class'])) {
-            $this->procLine->safeEcho(Language::getLanguage($this->language)['AppCantFindClass'] . ':' . $job['class'] . PHP_EOL);
+            $this->procLine->EchoAndLog('找不到用户APP:' . $job['class'] . PHP_EOL);
             throw new Exception('找不到' . $job['class'] . '.');
         }
         if (!method_exists($job['class'], 'run')) {
-            $this->procLine->safeEcho(Language::getLanguage($this->language)['AppCantFindPerform'] . ':' . $job['class'] . PHP_EOL);
+            $this->procLine->EchoAndLog('用户APP找不到run方法:' . $job['class'] . PHP_EOL);
             throw new Exception($job['class'] . '没有run方法.');
         }
-        $intf = class_implements($job['class']);
-        if (!isset($intf['LineQue\Lib\AppInterface'])) {
-            $this->procLine->safeEcho(Language::getLanguage($this->language)['AppCantFindInterface'] . ':' . $job['class'] . PHP_EOL);
-            throw new Exception($job['class'] . '没有perform方法.');
-        }
+//        $intf = class_implements($job['class']);
+//        if (!isset($intf['LineQue\Lib\AppInterface'])) {
+//            $this->procLine->EchoAndLog('用户APP未实现AppInterface接口:' . $job['class'] . PHP_EOL);
+//            throw new Exception($job['class'] . '没有perform方法.');
+//        }
         return new $job['class']($job); //实例化job
     }
 
@@ -212,18 +215,13 @@ class dbJobInstance {
      * @param type $dbConf
      * @return RedisDb
      */
-    public function doDbInstance($dbConf = null) {
-        $dbConf ?: $dbConf = Conf::getConf();
+    public function doDbInstance() {
+        $dbConf = Conf::getConf();
         if ($dbConf) {
-//            $type = ucfirst(strtolower($dbConf['DBTYPE']));
 //            $Dbtype = ucfirst(strtolower($dbConf['DBTYPE']));
 //            $class = $Dbtype . "Db";
 //            return new $class($dbConf[$Dbtype]);
             switch (strtolower($dbConf['DBTYPE'])) {
-                case "file":
-                    return new FileDb($dbConf['File']);
-                case "mysql":
-                    return new MysqlDb($dbConf['Mysql']);
                 case "redis":
                 default :
                     return new RedisDb($dbConf['Redis']);

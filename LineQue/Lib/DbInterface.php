@@ -1,15 +1,9 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 namespace LineQue\Lib;
 
 /**
- *
+ * 数据库接口,所有的数据库和job实例中间层必须实现本接口,用于实现所有的方法
  * @author Administrator
  */
 interface DbInterface {
