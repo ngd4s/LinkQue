@@ -2,6 +2,8 @@
 
 namespace App;
 
+use LineQue\Lib\AppInterface;
+
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -12,12 +14,14 @@ namespace App;
  *
  * @author Administrator
  */
-class FileP {
+class FileP implements AppInterface {
 
-    //put your code here
-    public function perform() {
-        print_r($this->job);
-        $x = 1 / 0;
+    public function __construct($job) {
+        file_put_contents('/data/LineQue/xxxxx.log', json_encode($job));
+    }
+
+    public function run() {
+        return true;
     }
 
 }

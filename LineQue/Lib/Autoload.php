@@ -2,10 +2,18 @@
 
 namespace LineQue\Lib;
 
+use LineQue\Worker\ProcLine;
+use const APP;
+use const LineQue;
+use const LOGPATH;
+
 class Autoload {
 
     public static function start() {
-        spl_autoload_register('LineQue\Lib\Autoload::autoload');
+        spl_autoload_register('\LineQue\Lib\Autoload::autoload');
+        register_shutdown_function('\LineQue\Lib\Autoload::fatalError');
+        set_error_handler('\LineQue\Lib\Autoload::appError');
+        set_exception_handler('\LineQue\Lib\Autoload::appException');
     }
 
     /**
@@ -25,10 +33,62 @@ class Autoload {
                 default :
                     $filename = dirname(APP) . '/' . $filename;
             }
+            file_put_contents('/data/LineQueA.log', $filename . PHP_EOL);
 //            print_r(is_file($filename) . $filename . '<br/>');
             if (is_file($filename)) {
                 include $filename;
             }
+        }
+    }
+
+    /**
+     * 严重错误
+     */
+    public static function fatalError() {
+        $e = error_get_last();
+        if ($e) {
+            $logLine = new ProcLine(LOGPATH);
+            $logLine->safeEcho('---------------------发生严重错误---------------------' . PHP_EOL);
+            $logLine->safeEcho(json_encode($e) . PHP_EOL);
+        }
+    }
+
+    /**
+     * 程序错误
+     * @param type $errno
+     * @param type $errstr
+     * @param type $errfile
+     * @param type $errline
+     */
+    public static function appError($errno, $errstr, $errfile, $errline) {
+        if ($errno) {
+            $errorStr = "$errstr " . $errfile . " 第 $errline 行.";
+            $logLine = new ProcLine(LOGPATH);
+            $logLine->safeEcho('---------------------发生程序错误---------------------' . PHP_EOL);
+            $logLine->safeEcho($errno . ':' . $errorStr . PHP_EOL);
+        }
+    }
+
+    /**
+     * 程序异常
+     * @param type $e
+     */
+    public static function appException($e) {
+        if ($e) {
+            $error = array();
+            $error['message'] = $e->getMessage();
+            $trace = $e->getTrace();
+            if ('E' == $trace[0]['function']) {
+                $error['file'] = $trace[0]['file'];
+                $error['line'] = $trace[0]['line'];
+            } else {
+                $error['file'] = $e->getFile();
+                $error['line'] = $e->getLine();
+            }
+            $error['trace'] = $e->getTraceAsString();
+            $logLine = new ProcLine(LOGPATH);
+            $logLine->safeEcho('---------------------发生异常---------------------' . PHP_EOL);
+            $logLine->safeEcho(json_encode($error) . PHP_EOL);
         }
     }
 

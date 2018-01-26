@@ -8,6 +8,8 @@
 
 namespace LineQue\Worker;
 
+use LineQue\Lib\Language;
+
 /**
  * Description of Line
  *
@@ -19,7 +21,7 @@ class ProcLine {
     private $initDisplay = array();
 
     public function __construct($logFile = null) {
-        $this->logFile = $logFile ? $logFile : LineQue . '/' . 'Lineque' . date('Ymd') . '.log';
+        $this->logFile = $logFile;
     }
 
     /**
@@ -27,11 +29,15 @@ class ProcLine {
      *
      * @return void
      */
-    public function displayUI() {
-        self::safeEcho("┌─────────────────────────────\033[40;35m LineQue \033[0m─────────────────────────────┐" . PHP_EOL);
-        self::safeEcho("├─initStatus────────────────────────────────────────────────────────┤" . PHP_EOL);
+    public function displayUI($lang = 'CH') {
+        self::safeEcho("┌───────────────────────────── LineQue ─────────────────────────────┐" . PHP_EOL);
+        self::safeEcho("├───────────────────────────────────────────── LineQueVersion:" . Master::VERSION . " ┤" . PHP_EOL);
+        self::safeEcho("│" . Language::getLanguage($lang)['Thanks1'] . "                                       │" . PHP_EOL);
+        self::safeEcho("│" . Language::getLanguage($lang)['Thanks2'] . "                  │" . PHP_EOL);
+        self::safeEcho("│" . Language::getLanguage($lang)['Thanks3'] . "                  │" . PHP_EOL);
+        self::safeEcho("│" . Language::getLanguage($lang)['Thanks4'] . "                │" . PHP_EOL);
         $this->showInitDisplay();
-        self::safeEcho("├────────────────────────── LineQueVersion:" . Master::VERSION . " PHPVersion:" . PHP_VERSION . " ─┤" . PHP_EOL);
+        self::safeEcho("├──────────────────────────────────────────────── PHPVersion:" . PHP_VERSION . " ┤" . PHP_EOL);
         self::safeEcho("└───────────────────────────────────────────────────────────────────┘" . PHP_EOL);
 //        self::safeEcho("\033[47;30muser\033[0m" . str_pad('', self::$_maxUserNameLength + 2 - strlen('user')) . "\033[47;30mworker\033[0m" . str_pad('', self::$_maxWorkerNameLength + 2 - strlen('worker')) . "\033[47;30mlisten\033[0m" . str_pad('', self::$_maxSocketNameLength + 2 - strlen('listen')) . "\033[47;30mprocesses\033[0m \033[47;30m" . "status\033[0m\n");
 //
@@ -69,9 +75,7 @@ class ProcLine {
      * @param $msg
      */
     public function safeEcho($msg) {
-        if (!function_exists('posix_isatty') || posix_isatty(STDOUT)) {
-            echo $msg;
-        }
+        echo $msg;
         $this->log($msg);
     }
 
@@ -82,7 +86,11 @@ class ProcLine {
      * @return void
      */
     public function log($msg) {
-        file_put_contents((string) $this->logFile, date('Y-m-d H:i:s') . ' ' . 'pid:' . posix_getpid() . ' ' . $msg, FILE_APPEND | LOCK_EX);
+//        $msg = str_replace('\033[40;35m', '', $msg);
+//        $msg = str_replace('\033[0m', '', $msg);
+        if ($this->logFile) {
+            file_put_contents((string) $this->logFile, date('Y-m-d H:i:s') . ' ' . $msg, FILE_APPEND | LOCK_EX);
+        }
     }
 
 }

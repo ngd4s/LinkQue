@@ -1,24 +1,24 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 namespace LineQue\Lib;
 
 /**
- * Description of Status
+ * Job的状态类
  *
  * @author Administrator
  */
 class Status {
 
-    const STATUS_WAITING = 1;
-    const STATUS_RUNNING = 2;
-    const STATUS_FAILED = 3;
-    const STATUS_COMPLETE = 4;
+    const STATUS_WAITING = 1; //新job,处于等待状态
+    const STATUS_RUNNING = 2; //出队执行
+    const STATUS_FAILED = 3; //执行失败
+    const STATUS_COMPLETE = 4; //执行完成
+
+    /**
+     * 根据状态值输出状态字符串
+     * @param type $status
+     * @return string
+     */
 
     public static function statusToString($status) {
         switch ($status) {
