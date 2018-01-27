@@ -8,6 +8,11 @@ use LineQue\Lib\Status;
 
 /**
  * 这一层是Redis和Job之间的层,用于job操作和redis实际操作隔离开
+ * 
+ * @author Linko
+ * @email 18716463@qq.com
+ * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @version 1.0.0
  *
  */
 class RedisDb implements DbInterface {

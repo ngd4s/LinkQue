@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * 测试队列用的方法,插入队列
+ * @author Linko
+ * @email 18716463@qq.com
+ * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @version 1.0.0
+ */
 define('LineQue', __DIR__);
 define('APP', __DIR__ . '/App');
 define('LOGPATH', LineQue . '/LineQue.log');
@@ -10,5 +17,5 @@ if (!class_exists('LineQue\Lib\Autoload', false)) {
 }
 LineQue\Lib\Autoload::start();
 $DbInstance = new LineQue\Lib\dbJobInstance();
-$jobid = $DbInstance->addJob('default', '\App\UserApp', array());
+$jobid = $DbInstance->addJob('default', '\App\UserAppF', array('lineDoTime' => time()));
 print_r($jobid . PHP_EOL);

@@ -7,8 +7,11 @@ use LineQue\Config\Conf;
 /**
  * 显示命令行
  * 记录日志
- *
- * @author Administrator
+ * 
+ * @author Linko
+ * @email 18716463@qq.com
+ * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @version 1.0.0
  */
 class ProcLine {
 

@@ -4,7 +4,11 @@ namespace LineQue\Lib;
 
 /**
  * 数据库接口,所有的数据库和job实例中间层必须实现本接口,用于实现所有的方法
- * @author Administrator
+ * 
+ * @author Linko
+ * @email 18716463@qq.com
+ * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @version 1.0.0
  */
 interface DbInterface {
 

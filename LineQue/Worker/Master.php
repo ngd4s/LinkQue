@@ -8,8 +8,11 @@ use const LOGPATH;
 
 /**
  * 主进程,用以保护实际执行job的子进程
- *
- * @author Administrator
+ * 
+ * @author Linko
+ * @email 18716463@qq.com
+ * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @version 1.0.0
  */
 class Master {
 
@@ -17,11 +20,14 @@ class Master {
     private $interval; //主进程和子进程的循环间隔
     private $daemonize; //脱离终端,这个东西有毛病,暂时没启用
     private $masterPid = 0; //主进程pid
-    private $slavePid = 0; //子进程pid
+//    private $slavePid = 0; //子进程pid
     private $procLine; //日志处理类
 
     public function __construct($Que, $interval, $daemonize = 0) {
-        $this->Que = $Que;
+        $this->Que = strpos($Que, ',') === false ? array($Que) : explode(',', $Que);
+        foreach ($this->Que as &$queue) {
+            $queue = array('que' => $queue, 'pid' => 0);
+        }
         $this->interval = $interval;
         $this->daemonize = $daemonize;
         $this->procLine = new ProcLine(LOGPATH);
@@ -37,17 +43,18 @@ class Master {
         //此处已经是子进程的子进程了,可以在此处进行下一步逻辑了
         $this->displayUI(); //显示方框
         while (1) {
-            if (!$this->slavePid) {//子进程是否已经存在
-                $this->procLine->EchoAndLog('开始创建子进程' . PHP_EOL);
-                $pid = pcntl_fork();
-                if ($pid == 0) {
-                    return $this->slaverMonitor(); //子进程
-                } elseif ($pid > 0) {
-                    $this->slavePid = $pid;
-                    $this->procLine->EchoAndLog("创建子进程成功Pid=" . $this->slavePid . PHP_EOL);
-                } else {
-                    $this->procLine->EchoAndLog('创建子进程出错,请检查PHP配置' . PHP_EOL);
-                    exit(0);
+            foreach ($this->Que as &$queue) {
+                if (!$queue['pid']) {
+                    $pid = pcntl_fork();
+                    if ($pid == 0) {
+                        return $this->slaverMonitor($queue['que']); //子进程
+                    } elseif ($pid > 0) {
+                        $queue['pid'] = $pid;
+                        $this->procLine->EchoAndLog("创建子进程成功Pid=" . $pid . ',监控队列' . $queue['que'] . PHP_EOL);
+                    } else {
+                        $this->procLine->EchoAndLog('创建子进程出错,请检查PHP配置' . PHP_EOL);
+                        exit(0);
+                    }
                 }
             }
             $this->masterMonitor(); //主进程,循环/等待,此处不能return
@@ -67,7 +74,11 @@ class Master {
         $exitPid = pcntl_wait($status);
         if ($exitPid > 0) {//$pid退出的子进程的编号
             $this->procLine->log('子进程意外退出Pid=' . $exitPid . '退出信号' . $status . PHP_EOL);
-            $this->slavePid = 0;
+            foreach ($this->Que as &$queue) {
+                if ($queue['pid'] == $exitPid) {
+                    $queue['pid'] = 0;
+                }
+            }
         } elseif ($exitPid == 0) {//没有子进程退出
         }
     }
@@ -76,10 +87,9 @@ class Master {
      * 子进程逻辑
      * @return boolean
      */
-    public function slaverMonitor() {
+    public function slaverMonitor($que) {
         usleep(10000); //稍微等几毫秒
-        $this->procLine->EchoAndLog('子进程开始执行' . PHP_EOL);
-        $SlaveWorker = new Worker($this->Que, $this->interval);
+        $SlaveWorker = new Worker($que, $this->interval);
         $SlaveWorker->startWork();
         return true;
     }
@@ -101,7 +111,11 @@ class Master {
             $this->procLine->initDisplay("SlaverPid:" . $this->slavePid);
         }
         $this->procLine->initDisplay("─运行参数──────────────────────────────────────────────────────────");
-        $this->procLine->initDisplay("Queue:" . $this->Que);
+        $questr = array();
+        foreach ($this->Que as &$queue) {
+            $questr[] = $queue['que'];
+        }
+        $this->procLine->initDisplay("Queue:" . implode(',', $questr));
         $this->procLine->initDisplay("Interval:" . $this->interval . 's');
         $this->procLine->initDisplay("LogPath:" . LOGPATH);
         $config = Conf::getConf();

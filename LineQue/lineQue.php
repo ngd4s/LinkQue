@@ -1,5 +1,12 @@
 #!/usr/bin/env php
 <?php
+/**
+ * 主入口
+ * @author Linko
+ * @email 18716463@qq.com
+ * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @version 1.0.0
+ */
 define('LineQue', __DIR__); //LineQue目录绝对路径,autoload中用到了,要加载类
 define('APP', __DIR__ . '/App'); //APP目录下为您的job类,您的job只能放在那儿,此处定义绝对路径,插入队列后,取出初始化job类时要用到这个常量
 // 只允许在cli下面运行  

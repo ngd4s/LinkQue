@@ -11,8 +11,11 @@ use const LOGPATH;
  * 通过这一层,隔离了数据库操作,数据库可以由这一层抽象出来
  * 实例化不同的数据库类型
  * 这一层还实例化用户指定的类,因此可以
- *
- * @author Administrator
+ * 
+ * @author Linko
+ * @email 18716463@qq.com
+ * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @version 1.0.0
  */
 class dbJobInstance {
 
@@ -28,7 +31,7 @@ class dbJobInstance {
      */
     public function __construct() {
         $this->dbInstance = $this->doDbInstance();
-        $this->procLine = new ProcLine(defined(LOGPATH) ? LOGPATH : null);
+        $this->procLine = new ProcLine(LOGPATH ? LOGPATH : null);
     }
 
     /**
@@ -117,6 +120,12 @@ class dbJobInstance {
      * @return type
      */
     public function addJob($queue, $class, $args = null) {
+        if (!$queue) {
+            return false;
+        }
+        if (!$class) {
+            return false;
+        }
         $this->updateStat(Status::STATUS_WAITING);
         return $this->dbInstance->addJobToList($queue, $class, $args);
     }
@@ -128,28 +137,19 @@ class dbJobInstance {
      * @return boolean
      */
     public function run($job) {
-        try {
-            $instance = $this->getAppInstance($job);
-            if (!$instance) {
-                $this->procLine->EchoAndLog('用户App初始化失败:' . $job['class'] . PHP_EOL);
-            } else {
-                $this->workingOn($job); //开始执行
-                $this->procLine->EchoAndLog('用户APP开始执行:' . $job['id'] . PHP_EOL);
-                $rs = $this->runApp($instance);
-                if ($rs) {
-                    $this->procLine->EchoAndLog('用户APP执行成功:' . $job['id'] . PHP_EOL);
-                    $this->workingDone($job); //执行完成
-                    return true;
-                } else {
-                    $this->procLine->EchoAndLog('用户APP执行失败:' . $job['id'] . PHP_EOL);
-                    $this->workingFail($job); //执行失败
-                    return false;
-                }
+        $instance = $this->getAppInstance($job);
+        if ($instance) {
+            $this->procLine->EchoAndLog('用户APP开始执行:' . $job['id'] . PHP_EOL);
+            $this->workingOn($job); //开始执行
+            $rs = $this->runApp($instance);
+            if ($rs) {
+                $this->procLine->EchoAndLog('用户APP执行成功:' . $job['id'] . PHP_EOL);
+                $this->workingDone($job); //执行完成
+                return true;
             }
-        } catch (Exception $e) {
-            $this->procLine->EchoAndLog('用户APP执行异常:' . $job['id'] . ':' . json_encode($e) . PHP_EOL);
-            throw $e;
         }
+        $this->workingFail($job); //执行失败
+        $this->procLine->EchoAndLog('用户App执行失败:' . $job['id'] . PHP_EOL);
         return false;
     }
 
@@ -161,28 +161,18 @@ class dbJobInstance {
      * @return boolean
      */
     public function runApp($instance) {
-        $dbConf = Conf::getConf();
-        if ($dbConf['DBTYPE'] == 'Redis') {
-            $pid = pcntl_fork();
-            if ($pid > 0) {
-                $status = 0;
-                $exitPid = pcntl_wait($status);
-                if ($exitPid && $status == 0) {
-                    return true;
-                }
-            } elseif ($pid == 0) {
-                $instance->run(); //执行用户的perform方法
-                exit(0);
-            }
-            return false;
-        } else {//非Redis方式,本人写的不好,开始写的时候没想到使用子进程管理数据库连接导致报错的问题
-            try {
-                $instance->run(); //执行用户的perform方法
+        $pid = pcntl_fork();
+        if ($pid > 0) {
+            $status = null;
+            $exitPid = pcntl_wait($status);
+            if ($exitPid && $status == 0) {
                 return true;
-            } catch (Exception $ex) {
-                return false;
             }
+        } elseif ($pid == 0) {
+            $instance->run(); //执行用户的perform方法
+            exit(0);
         }
+        return false;
     }
 
     /**
@@ -195,17 +185,12 @@ class dbJobInstance {
     public function getAppInstance($job) {
         if (!class_exists($job['class'])) {
             $this->procLine->EchoAndLog('找不到用户APP:' . $job['class'] . PHP_EOL);
-            throw new Exception('找不到' . $job['class'] . '.');
+            return false;
         }
         if (!method_exists($job['class'], 'run')) {
             $this->procLine->EchoAndLog('用户APP找不到run方法:' . $job['class'] . PHP_EOL);
-            throw new Exception($job['class'] . '没有run方法.');
+            return false;
         }
-//        $intf = class_implements($job['class']);
-//        if (!isset($intf['LineQue\Lib\AppInterface'])) {
-//            $this->procLine->EchoAndLog('用户APP未实现AppInterface接口:' . $job['class'] . PHP_EOL);
-//            throw new Exception($job['class'] . '没有perform方法.');
-//        }
         return new $job['class']($job); //实例化job
     }
 

@@ -8,6 +8,11 @@ use const LOGPATH;
 
 /**
  * 自动加载类
+ * 
+ * @author Linko
+ * @email 18716463@qq.com
+ * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @version 1.0.0
  */
 class Autoload {
 
