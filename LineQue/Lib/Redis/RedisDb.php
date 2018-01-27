@@ -11,7 +11,7 @@ use LineQue\Lib\Status;
  * 
  * @author Linko
  * @email 18716463@qq.com
- * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @link https://github.com/kknv/LinkQue
  * @version 1.0.0
  *
  */

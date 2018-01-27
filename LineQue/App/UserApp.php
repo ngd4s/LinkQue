@@ -6,8 +6,8 @@ namespace App;
  * 用户APP
  * 
  * @author Linko
- * @email 18716463@qq.com
- * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @email 18716463@qq.com 
+ * @link https://github.com/kknv/LinkQue
  * @version 1.0.0
  */
 class UserApp implements AppInterface {

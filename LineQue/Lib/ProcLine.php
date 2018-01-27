@@ -10,7 +10,7 @@ use LineQue\Config\Conf;
  * 
  * @author Linko
  * @email 18716463@qq.com
- * @link https://github.com/kknv/LinkQue git上的项目地址
+ * @link https://github.com/kknv/LinkQue
  * @version 1.0.0
  */
 class ProcLine {
@@ -33,7 +33,7 @@ class ProcLine {
         $this->EchoAndLog("│感谢您选择LineQue                                                  │" . PHP_EOL);
         $this->EchoAndLog("│LineQue是一款基于PHP的简单队列程序                                 │" . PHP_EOL);
         $this->EchoAndLog("│本程序参考了很多PHP_RESQUE思想                                     │" . PHP_EOL);
-        $this->EchoAndLog("│需要更多帮助,请访问                                                │" . PHP_EOL);
+        $this->EchoAndLog("│需要更多帮助,请访问https://github.com/kknv/LinkQue                 │" . PHP_EOL);
         $this->showInitDisplay();
         $this->EchoAndLog("├──────────────────────────────────────────────── PHPVersion:" . PHP_VERSION . " ┤" . PHP_EOL);
         $this->EchoAndLog("└───────────────────────────────────────────────────────────────────┘" . PHP_EOL);
