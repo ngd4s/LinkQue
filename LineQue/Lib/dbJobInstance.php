@@ -4,7 +4,6 @@ namespace LineQue\Lib;
 
 use Exception;
 use LineQue\Config\Conf;
-use LineQue\Lib\Redis\RedisDb;
 use const LOGPATH;
 
 /**
@@ -218,14 +217,9 @@ class dbJobInstance {
     public function doDbInstance() {
         $dbConf = Conf::getConf();
         if ($dbConf) {
-//            $Dbtype = ucfirst(strtolower($dbConf['DBTYPE']));
-//            $class = $Dbtype . "Db";
-//            return new $class($dbConf[$Dbtype]);
-            switch (strtolower($dbConf['DBTYPE'])) {
-                case "redis":
-                default :
-                    return new RedisDb($dbConf['Redis']);
-            }
+            $Dbtype = ucfirst(strtolower($dbConf['DBTYPE']));
+            $class = "LineQue\\Lib\\" . $Dbtype . "\\" . $Dbtype . "Db";
+            return new $class($dbConf[$Dbtype]);
         } else {
             die('数据库配置无效');
         }
